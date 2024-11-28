@@ -1,24 +1,40 @@
 package com.example.mobifinal.ui.screens
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
+import android.widget.Toast
+
+data class Student(val name: String, var isPresent: Boolean)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttendanceScreen() {
+    // Get the current context
+    val context = LocalContext.current
+
+    // Remember the list of students and their attendance status
+    var students by remember { mutableStateOf(listOf(
+        Student("John Doe", false),
+        Student("Jane Smith", false),
+        Student("Alice Johnson", false)
+    )) }
+
     Scaffold(
         topBar = {
+            // Top app bar with title
             TopAppBar(
                 title = { Text(text = "Attendance", fontSize = 20.sp) },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -49,49 +65,67 @@ fun AttendanceScreen() {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Attendance Summary Card
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    elevation = CardDefaults.cardElevation(4.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                // Attendance Checklist
+                students.forEachIndexed { index, student ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Attendance Summary",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF6200EE)
+                        // Checkbox for each student to mark attendance
+                        Checkbox(
+                            checked = student.isPresent,
+                            onCheckedChange = { isChecked ->
+                                // Update the attendance status of the student
+                                students = students.toMutableList().apply {
+                                    this[index] = this[index].copy(isPresent = isChecked)
+                                }
+                            }
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        // Display the student's name
                         Text(
-                            text = "Present: 85%\nAbsent: 15%",
-                            fontSize = 16.sp,
+                            text = student.name,
+                            fontSize = 18.sp,
                             color = Color(0xFF333333),
-                            textAlign = TextAlign.Center
+                            modifier = Modifier.padding(start = 8.dp)
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Mark Attendance Button
+                // Button to send the attendance report
                 Button(
-                    onClick = { /* Handle mark attendance action */ },
+                    onClick = { sendAttendanceReport(context, students) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
                 ) {
-                    Text(text = "Mark Attendance", color = Color.White, fontSize = 16.sp)
+                    Text(text = "Send Attendance Report", color = Color.White, fontSize = 16.sp)
                 }
             }
         }
     )
+}
+
+fun sendAttendanceReport(context: Context, students: List<Student>) {
+    // Filter the list of students to get those who are present and absent
+    val presentStudents = students.filter { it.isPresent }
+    val absentStudents = students.filter { !it.isPresent }
+
+    // Build a message string with the attendance details
+    val message = buildString {
+        append("Attendance Report Sent\n\n")
+        append("Present Students: ${presentStudents.size}\n")
+        presentStudents.forEach { append("- ${it.name}\n") }
+        append("\nAbsent Students: ${absentStudents.size}\n")
+        absentStudents.forEach { append("- ${it.name}\n") }
+    }
+
+    // Show the message in a Toast
+    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+
 }
 
 @Preview(showBackground = true)
