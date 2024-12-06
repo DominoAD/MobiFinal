@@ -1,22 +1,11 @@
-package com.example.mobifinal.data
-
-import android.content.Context
-import android.database.sqlite.SQLiteDatabase
-import android.database.sqlite.SQLiteOpenHelper
-import android.content.ContentValues
-import android.database.Cursor
-import com.example.mobifinal.Report
-import com.example.mobifinal.ui.screens.ReportsScreen
-import com.example.mobifinal.ui.screens.Student
-
-class MyDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
-
-
+package com.example.mobifinal.data  import android.content.ContentValues import android.content.Context import android.database.Cursor import android.database.sqlite.SQLiteDatabase import android.database.sqlite.SQLiteOpenHelper import com.example.mobifinal.Report import com.example.mobifinal.ui.screens.Student  class MyDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
     companion object {
         const val DATABASE_NAME = "my_database.db"
-        const val DATABASE_VERSION = 1
+        const val DATABASE_VERSION = 2
         const val TABLE_CLASSROOMS = "classrooms"
         const val TABLE_STUDENTS = "students"
+        const val TABLE_USERS = "users"
+        const val TABLE_REPORTS = "reports"
 
         const val COLUMN_CLASSROOM_ID = "id"
         const val COLUMN_CLASSROOM_NAME = "name"
@@ -26,7 +15,10 @@ class MyDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NA
         const val COLUMN_CLASSROOM_ID_FK = "classroom_id"
         const val COLUMN_IS_PRESENT = "is_present"
 
-        const val TABLE_REPORTS = "reports"
+        const val COLUMN_USER_ID = "id"
+        const val COLUMN_USER_EMAIL = "email"
+        const val COLUMN_USER_PASSWORD = "password"
+
         const val COLUMN_REPORT_ID = "id"
         const val COLUMN_REPORT_DATE = "date"
         const val COLUMN_REPORT_TIME = "time"
@@ -48,6 +40,12 @@ class MyDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NA
                     "$COLUMN_IS_PRESENT INTEGER," +
                     "FOREIGN KEY($COLUMN_CLASSROOM_ID_FK) REFERENCES $TABLE_CLASSROOMS($COLUMN_CLASSROOM_ID))"
 
+        private const val SQL_CREATE_USERS =
+            "CREATE TABLE $TABLE_USERS (" +
+                    "$COLUMN_USER_ID INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "$COLUMN_USER_EMAIL TEXT UNIQUE," +
+                    "$COLUMN_USER_PASSWORD TEXT)"
+
         private const val SQL_CREATE_REPORTS =
             "CREATE TABLE $TABLE_REPORTS (" +
                     "$COLUMN_REPORT_ID INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -60,26 +58,27 @@ class MyDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NA
 
         private const val SQL_DELETE_CLASSROOMS = "DROP TABLE IF EXISTS $TABLE_CLASSROOMS"
         private const val SQL_DELETE_STUDENTS = "DROP TABLE IF EXISTS $TABLE_STUDENTS"
-
+        private const val SQL_DELETE_USERS = "DROP TABLE IF EXISTS $TABLE_USERS"
+        private const val SQL_DELETE_REPORTS = "DROP TABLE IF EXISTS $TABLE_REPORTS"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(SQL_CREATE_CLASSROOMS)
         db.execSQL(SQL_CREATE_STUDENTS)
+        db.execSQL(SQL_CREATE_USERS)
         db.execSQL(SQL_CREATE_REPORTS)
-
-        // Prepopulate classrooms and students (optional)
         prepopulateData(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         db.execSQL(SQL_DELETE_STUDENTS)
         db.execSQL(SQL_DELETE_CLASSROOMS)
+        db.execSQL(SQL_DELETE_USERS)
+        db.execSQL(SQL_DELETE_REPORTS)
         onCreate(db)
     }
 
     private fun prepopulateData(db: SQLiteDatabase) {
-        // Insert sample classrooms
         val classrooms = listOf("Room 001", "Room 002", "Room 003", "Room 004", "Room 005")
         classrooms.forEachIndexed { index, name ->
             val values = ContentValues().apply {
@@ -89,7 +88,6 @@ class MyDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NA
             db.insert(TABLE_CLASSROOMS, null, values)
         }
 
-        // Insert sample students
         val students = listOf(
             Triple("Kelvin Doe", 1, 0),
             Triple("Evan Vanoostrum", 1, 0),
@@ -117,10 +115,35 @@ class MyDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NA
             val values = ContentValues().apply {
                 put(COLUMN_STUDENT_NAME, name)
                 put(COLUMN_CLASSROOM_ID_FK, classroomId)
-                put(COLUMN_IS_PRESENT, isPresent) // Explicitly define as Integer
+                put(COLUMN_IS_PRESENT, isPresent)
             }
             db.insert(TABLE_STUDENTS, null, values)
         }
+    }
+
+    fun createUser(email: String, password: String) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_USER_EMAIL, email)
+            put(COLUMN_USER_PASSWORD, password)
+        }
+        db.insert(TABLE_USERS, null, values)
+    }
+
+    fun getUser(email: String, password: String): Boolean {
+        val db = readableDatabase
+        val cursor: Cursor = db.query(
+            TABLE_USERS,
+            arrayOf(COLUMN_USER_ID),
+            "$COLUMN_USER_EMAIL = ? AND $COLUMN_USER_PASSWORD = ?",
+            arrayOf(email, password),
+            null,
+            null,
+            null
+        )
+        val userExists = cursor.moveToFirst()
+        cursor.close()
+        return userExists
     }
 
     fun getClassrooms(): List<String> {
@@ -181,7 +204,11 @@ class MyDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NA
                     classroom = getString(getColumnIndexOrThrow(COLUMN_REPORT_CLASSROOM)),
                     studentName = getString(getColumnIndexOrThrow(COLUMN_REPORT_STUDENT_NAME)),
                     reason = getString(getColumnIndexOrThrow(COLUMN_REPORT_REASON)),
-                    parentEmail = getString(getColumnIndexOrThrow(COLUMN_REPORT_PARENT_EMAIL))
+                    parentEmail = getString(getColumnIndexOrThrow(COLUMN_REPORT_PARENT_EMAIL)),
+                    absentStudents = 0, // Placeholder value
+                    presentStudents = 0, // Placeholder value
+                    totalStudents = 0, // Placeholder value
+                    className = "" // Placeholder value
                 )
                 reports.add(report)
             }
@@ -190,12 +217,10 @@ class MyDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NA
         return reports
     }
 
-
     fun getStudentsByClassroom(classroomName: String): List<Student> {
         val students = mutableListOf<Student>()
         val db = readableDatabase
 
-        // Get classroom ID
         val cursor: Cursor = db.query(
             TABLE_CLASSROOMS,
             arrayOf(COLUMN_CLASSROOM_ID),

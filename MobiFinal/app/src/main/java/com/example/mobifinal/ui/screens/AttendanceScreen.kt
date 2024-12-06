@@ -1,5 +1,6 @@
 package com.example.mobifinal.ui.screens
 
+import CommonBottomNavigation
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -43,7 +44,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.mobifinal.data.MyDatabaseHelper
-import com.example.mobifinal.ui.components.BottomNavigationBar
 
 data class Student(val name: String, var isPresent: Boolean, val classroom: String, var reason: String = "", var parentEmail: String = "")
 
@@ -96,7 +96,13 @@ fun AttendanceScreen(
             )
         },
         bottomBar = {
-            BottomNavigationBar(navController = navController)
+            CommonBottomNavigation(
+                currentRoute = "attendance",
+                onNavigateToHome = { navController.navigate("home") },
+                onNavigateToAttendance = { /* Already on attendance screen */ },
+                onNavigateToReports = { navController.navigate("reports") },
+                onNavigateToSettings = { navController.navigate("settings") }
+            )
         }
     ) { paddingValues ->
         if (isReportScreenVisible) {
@@ -107,7 +113,6 @@ fun AttendanceScreen(
                 isReportScreenVisible = false
             }
         } else {
-            // Your existing attendance content here
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -125,7 +130,6 @@ fun AttendanceScreen(
                 DropdownMenu(selectedItem = selectedClassroom, items = classrooms) {
                     selectedClassroom = it
                     students = databaseHelper.getStudentsByClassroom(it)
-                    students = databaseHelper.getStudentsByClassroom(selectedClassroom)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -270,11 +274,9 @@ fun AbsenceReport(absentReport: List<Student>, selectedClassroom: String, onBack
                                     parentEmail = student.parentEmail
                                 )
                             }
-                            sendEmail(context, updatedReport, )
+                            sendEmail(context, updatedReport)
 
                             onBack()
-
-
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
@@ -288,14 +290,13 @@ fun AbsenceReport(absentReport: List<Student>, selectedClassroom: String, onBack
     )
 }
 
-fun sendEmail(context: Context, absentReport: List<Student>, ) {
+fun sendEmail(context: Context, absentReport: List<Student>) {
     val message = buildString {
         append("Absent Report\n")
         append("Classroom\n")
         absentReport.forEach {
             append("${it.name}: ${it.reason.ifBlank { "No reason provided" }}\n")
             append("Parent Email: ${it.parentEmail.ifBlank { "No email provided" }}\n")
-
         }
     }
     Toast.makeText(context, message, Toast.LENGTH_LONG).show()

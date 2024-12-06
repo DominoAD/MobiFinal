@@ -1,98 +1,127 @@
 package com.example.mobifinal.ui.screens
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.mobifinal.ui.viewmodel.MainViewModel
-import com.example.mobifinal.utils.Validator
-import com.example.mobifinal.utils.ErrorHandler
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.mobifinal.ui.viewmodel.SignUpState
+import com.example.mobifinal.ui.viewmodel.SignUpViewModel
 
 @Composable
 fun SignupScreen(
     onSignupSuccess: () -> Unit,
-    viewModel: MainViewModel
+    onNavigateToLogin: () -> Unit,
+    viewModel: SignUpViewModel = viewModel()
 ) {
-    // State variables to hold email, password, confirm password, and error message
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    val signUpState by viewModel.signUpState.observeAsState(SignUpState.Initial)
+    val isLoading by viewModel.isLoading.observeAsState(false)
 
-    // Main column layout for the signup screen
     Column(
         modifier = Modifier
-            .fillMaxSize() // Fill the entire screen
-            .padding(16.dp), // Padding around the column
-        verticalArrangement = Arrangement.Center, // Center the content vertically
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Title text for the signup screen
-        Text(
-            text = "Sign Up",
-            fontSize = 24.sp,
-            modifier = Modifier.padding(bottom = 16.dp) // Padding below the title
-        )
+        Text(text = "Sign Up", style = MaterialTheme.typography.headlineMedium)
 
-        // Text field for email input
+        Spacer(modifier = Modifier.height(16.dp))
+
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it }, // Update email state on value change
+            onValueChange = { email = it },
             label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth() // Fill the width of the parent
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            modifier = Modifier.fillMaxWidth()
         )
 
-        // Text field for password input with visual transformation
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = username,
+            onValueChange = { username = it },
+            label = { Text("Username") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it }, // Update password state on value change
+            onValueChange = { password = it },
             label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(), // Fill the width of the parent
-            visualTransformation = PasswordVisualTransformation() // Hide password input
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth()
         )
 
-        // Text field for confirm password input with visual transformation
+        Spacer(modifier = Modifier.height(8.dp))
+
         OutlinedTextField(
             value = confirmPassword,
-            onValueChange = { confirmPassword = it }, // Update confirm password state on value change
+            onValueChange = { confirmPassword = it },
             label = { Text("Confirm Password") },
-            modifier = Modifier.fillMaxWidth(), // Fill the width of the parent
-            visualTransformation = PasswordVisualTransformation() // Hide confirm password input
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth()
         )
 
-        // Display error message if any
-        Text(text = errorMessage, color = MaterialTheme.colorScheme.error)
+        Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(16.dp)) // Spacer for spacing between elements
-
-        // Signup button
         Button(
-            onClick = {
-                // Validate email, password, and confirm password input
-                if (Validator.validateSignupInput(email, password, confirmPassword)) {
-                    // Attempt signup using the view model
-                    viewModel.signup(email, password, onError = { error ->
-                        // Update error message on signup failure
-                        errorMessage = ErrorHandler.getErrorMessage(error)
-                    }, onSuccess = onSignupSuccess)
-                } else {
-                    // Set error message if validation fails
-                    errorMessage = "Invalid input or passwords do not match"
-                }
-            },
-            modifier = Modifier.fillMaxWidth() // Fill the width of the parent
+            onClick = { viewModel.signUp(email, password, confirmPassword, username) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading
         ) {
-            Text(text = "Sign Up")
+            if (isLoading) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+            } else {
+                Text("Sign Up")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextButton(onClick = onNavigateToLogin) {
+            Text("Already have an account? Log in")
+        }
+
+        when (signUpState) {
+            is SignUpState.Error -> {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = (signUpState as SignUpState.Error).message, color = MaterialTheme.colorScheme.error)
+            }
+            SignUpState.Success -> {
+                LaunchedEffect(Unit) {
+                    onSignupSuccess()
+                }
+            }
+            else -> {}
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewSignupScreen() {
-    // Preview function for the signup screen
-    SignupScreen(onSignupSuccess = {}, viewModel = MainViewModel())
 }

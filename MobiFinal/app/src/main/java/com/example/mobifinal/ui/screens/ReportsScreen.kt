@@ -1,142 +1,153 @@
 package com.example.mobifinal.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import CommonBottomNavigation
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.example.mobifinal.Report
+import com.example.mobifinal.data.MyDatabaseHelper
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReportsScreen() {
-    // Remember a list of reports to display
-    val reports = remember {
-        listOf(
-            Report(
-                date = "2024-11-28",
-                students = listOf(
-                    Student("John Doe", true),
-                    Student("Jane Smith", false),
-                    Student("Alice Johnson", true)
-                )
-            ),
-            Report(
-                date = "2024-11-27",
-                students = listOf(
-                    Student("John Doe", false),
-                    Student("Jane Smith", true),
-                    Student("Alice Johnson", true)
-                )
-            )
-        )
+fun ReportsScreen(databaseHelper: MyDatabaseHelper, navController: NavHostController) {
+    var reports by remember { mutableStateOf(emptyList<Report>()) }
+
+    LaunchedEffect(Unit) {
+        reports = databaseHelper.getReports()
     }
 
     Scaffold(
         topBar = {
-            // Top app bar with title
             TopAppBar(
-                title = { Text(text = "Attendance Reports", fontSize = 20.sp) },
+                title = { Text("Reports") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.Default.ArrowBack, "Back")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFF6200EE),
-                    titleContentColor = Color.White
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
             )
         },
-        content = { paddingValues ->
-            Column(
+        bottomBar = {
+            CommonBottomNavigation(
+                currentRoute = "reports",
+                onNavigateToHome = { navController.navigate("home") },
+                onNavigateToAttendance = { navController.navigate("attendance") },
+                onNavigateToReports = { /* Already on reports screen */ },
+                onNavigateToSettings = { navController.navigate("settings") }
+            )
+        }
+    ) { paddingValues ->
+        if (reports.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No reports available.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        } else {
+            LazyColumn(
                 modifier = Modifier
                     .padding(paddingValues)
-                    .fillMaxSize()
-                    .background(Color(0xFFF5F5F5))
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Title of the screen
-                Text(
-                    text = "Attendance Reports",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF333333),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // List of reports
-                LazyColumn {
-                    items(reports.size) { index ->
-                        // Display each report in a card
-                        ReportCard(report = reports[index])
-                    }
-                }
-            }
-        }
-    )
-}
-
-@Composable
-fun ReportCard(report: Report) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .background(Color.White),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            // Display the date of the report
-            Text(
-                text = "Date: ${report.date}",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF6200EE)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Display the list of students and their attendance status
-            report.students.forEach { student ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Display the student's name
-                    Text(
-                        text = student.name,
-                        fontSize = 16.sp,
-                        color = Color(0xFF333333)
-                    )
-                    // Display the student's attendance status
-                    Text(
-                        text = if (student.isPresent) "Present" else "Absent",
-                        fontSize = 16.sp,
-                        color = if (student.isPresent) Color.Green else Color.Red
-                    )
+                items(reports) { report ->
+                    ReportCard(report)
                 }
             }
         }
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun PreviewReportsScreen() {
-    ReportsScreen()
+private fun ReportCard(report: Report) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Class: ${report.className}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Date: ${report.date}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "Total Students: ${report.totalStudents}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "Present: ${report.presentStudents}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Green
+            )
+            Text(
+                text = "Absent: ${report.absentStudents}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Red
+            )
+            LinearProgressIndicator(
+                progress = report.presentStudents.toFloat() / report.totalStudents.toFloat(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp),
+                color = Color.Green,
+                trackColor = Color.Red
+            )
+        }
+    }
 }

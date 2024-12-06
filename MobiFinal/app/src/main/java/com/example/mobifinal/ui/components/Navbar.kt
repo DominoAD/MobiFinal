@@ -1,49 +1,74 @@
-package com.example.mobifinal.ui.components
-
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavController
-import androidx.navigation.Navigation
-import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.ui.graphics.Color
 
 @Composable
-fun BottomNavigationBar(navController: NavController) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination?.route
-
-    // Define navigation items
-    val items = listOf(
-        NavigationItem("home", Icons.Filled.Home, "Home"),
-        NavigationItem("attendance", Icons.Filled.CheckCircle, "Attendance"),
-        NavigationItem("reports", Icons.Filled.List, "Reports"),
-        NavigationItem("settings", Icons.Filled.Settings, "Settings"),
-    )
-
-    // Render NavigationBar
-    NavigationBar {
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = { Icon(item.icon, contentDescription = item.label) },
-                label = { Text(item.label) },
-                selected = currentDestination == item.route,
-                onClick = {
-                    if (currentDestination != item.route) {
-                        navController.navigate(item.route) {
-                            launchSingleTop = true
-                            restoreState = true
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
-                            }
-                        }
-                    }
-                }
+fun CommonBottomNavigation(
+    currentRoute: String,
+    onNavigateToHome: () -> Unit,
+    onNavigateToAttendance: () -> Unit,
+    onNavigateToReports: () -> Unit,
+    onNavigateToSettings: () -> Unit
+) {
+    NavigationBar(
+        containerColor = Color(0xFF6200EE)
+    ) {
+        NavigationBarItem(
+            selected = currentRoute == "home",
+            onClick = onNavigateToHome,
+            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+            label = { Text("Home") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = Color.White,
+                unselectedIconColor = Color.White.copy(alpha = 0.7f),
+                selectedTextColor = Color.White,
+                unselectedTextColor = Color.White.copy(alpha = 0.7f)
             )
-        }
+        )
+        NavigationBarItem(
+            selected = currentRoute == "attendance",
+            onClick = onNavigateToAttendance,
+            icon = { Icon(Icons.Default.CheckCircle, contentDescription = "Attendance") },
+            label = { Text("Attendance") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = Color.White,
+                unselectedIconColor = Color.White.copy(alpha = 0.7f),
+                selectedTextColor = Color.White,
+                unselectedTextColor = Color.White.copy(alpha = 0.7f)
+            )
+        )
+        NavigationBarItem(
+            selected = currentRoute == "reports",
+            onClick = onNavigateToReports,
+            icon = { Icon(Icons.Default.List, contentDescription = "Reports") },
+            label = { Text("Reports") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = Color.White,
+                unselectedIconColor = Color.White.copy(alpha = 0.7f),
+                selectedTextColor = Color.White,
+                unselectedTextColor = Color.White.copy(alpha = 0.7f)
+            )
+        )
+        NavigationBarItem(
+            selected = currentRoute == "settings",
+            onClick = onNavigateToSettings,
+            icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+            label = { Text("Settings") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = Color.White,
+                unselectedIconColor = Color.White.copy(alpha = 0.7f),
+                selectedTextColor = Color.White,
+                unselectedTextColor = Color.White.copy(alpha = 0.7f)
+            )
+        )
     }
 }
-
-data class NavigationItem(val route: String, val icon: ImageVector, val label: String)

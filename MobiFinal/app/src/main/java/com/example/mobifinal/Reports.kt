@@ -1,13 +1,21 @@
 package com.example.mobifinal
 
-import com.example.mobifinal.ui.screens.Student
-
 data class Report(
+    val id: Int,
     val date: String,
-    val students: List<Student>
+    val time: String,
+    val classroom: String,
+    val studentName: String,
+    val reason: String,
+    val parentEmail: String,
+    val absentStudents: Int,
+    val presentStudents: Int,
+    val totalStudents: Int,
+    val className: String
 )
-
 data class Student(
     val name: String,
-    val isPresent: Boolean
+    val isPresent: Boolean,
+    var reason: String = "",
+    var parentEmail: String = ""
 )
